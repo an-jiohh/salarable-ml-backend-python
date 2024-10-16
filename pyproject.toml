@@ -9,6 +9,10 @@ readme = "README.md"
 python = "3.11.9"
 fastapi = "^0.115.2"
 uvicorn = "^0.32.0"
+pinecone-client = "^5.0.1"
+torch = "^2.4.1"
+kobert-transformers = "^0.6.0"
+python-dotenv = "^1.0.1"
 
 
 [build-system]
