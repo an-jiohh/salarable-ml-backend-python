@@ -1,11 +1,14 @@
-import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from functools import lru_cache
 
-# 환경 변수 로드
-load_dotenv()
+class Settings(BaseSettings):
+    pinecone_api_key: str 
+    openai_api_key: str
+    pinecone_index_name: str
+    pre_processed_dataset: str
+    # APP_ENV: str = 'dev'
+    model_config = SettingsConfigDict(env_file=".env")
 
-class Settings:
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
-    PINECONE_API_KEY: str = os.getenv("PINECONE_API_KEY")
-
-settings = Settings()
+@lru_cache
+def get_settings():
+    return Settings()
