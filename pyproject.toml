@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "ml-backend-python"
+version = "0.1.0"
+description = ""
+authors = ["an-jiohh <dkswlgh99@naver.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.11.9"
+fastapi = "^0.115.2"
+uvicorn = "^0.32.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
