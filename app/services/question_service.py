@@ -15,6 +15,11 @@ import torch
 import json
 from collections import Counter
 
+#loggin
+import logging
+
+logger = logging.getLogger(__name__)
+
 class QuestionService:
     def __init__(self, config:Settings):
         self.index = self.create_index(config)
@@ -31,6 +36,7 @@ class QuestionService:
         self.arrangement_pf_system_message = self.get_arrangement_pf_system_message()
         self.arrangement_jd_system_message = self.get_arrangement_jd_system_message()
         self.for_search_system_message = self.get_for_search_system_message()
+        self.system_message = self.get_system_message()
 
     # def create_questions(self, id: str, links: list[str]) -> list[str]:
     def create_questions(self, portfolio_data: str, job_description_data: str, input_position: str) -> list[str]:
@@ -44,9 +50,10 @@ class QuestionService:
         query_data = {}
 
         for keyword in keywordAndSentences_to_search.keys():
-            print(f"기술키워드 : {keyword}")
+            logger.info(f"기술키워드 : {keyword}")
+
             for sentence in keywordAndSentences_to_search[keyword]:
-                print(f"포트폴리오 내 문장 : {sentence}")
+                logger.info(f"포트폴리오 내 문장 : {sentence}")
                 query_results = self.query_search(keyword, sentence, input_position)
                 matches = query_results.get('matches', [])
                 for match in matches:
@@ -56,11 +63,11 @@ class QuestionService:
                     score = match.get('score', 'N/A')
 
                     # # 출력 포맷 지정
-                    # print(f"Original Sentence: {sentence}")
-                    # print(f"Tech Keyword: {tech_keyword}")
-                    # print(f"Text: {text}")
-                    # print(f"Score: {score:.2f}")
-                    # print('-' * 50)
+                    # logger.info(f"Original Sentence: {sentence}")
+                    # logger.info(f"Tech Keyword: {tech_keyword}")
+                    # logger.info(f"Text: {text}")
+                    # logger.info(f"Score: {score:.2f}")
+                    # logger.info('-' * 50)
 
                     # 원본 문장을 키로, 검색된 텍스트 정보를 리스트로 추가
                     if sentence not in query_data:
@@ -71,43 +78,8 @@ class QuestionService:
                         "tech_keyword": tech_keyword,
                         "score": round(score, 2)
                     })
-
-        system_message ="""
-            역할(Role):
-            * 당신은  다양한 개발 분야에서 폭넓은 경험을 가진 30년차 개발자이며 10년차 IT교육자 김철수입니다.
-            * 당신은 현재 프론트엔드(FE) 및 백엔드(BE)분야의 기술 역량평가를 진행하는 평가 담당관입니다.
-            * 역량평가 및 면접을 위해 적절한 질문을 생성해야합니다.
-
-            목표(Goal):
-            * 역량평가 및 면접을 위해 적절한 질문을 생성해야합니다.
-
-            맥락(Context):
-            * 사용자의 포트폴리오 내용을 기반으로 벡터 DB내 Similarity Search를 통한 결과물인 실제 면접 질문을 참고하여 적절한 면접 질문을 생성합니다.
-
-            지시사항(Instructions):
-            * 각 키워드별로 면접 질문을 키워드마다 각각 7개 이상 생성하세요
-            * 출력의 {tech_keyword}는 Result of Similarity Search[tech_keyword]입니다.
-            * 일부 질문은 사용자 포트폴리오 내의 프로젝트 명을 들며, 이 프로젝트에서는 ~ 라며 경험을 언급하는 질문도 1~2개 정도 추가하세요.
-
-            제약사항(Constraints):
-            * 반환 형식은 오직 JSON 형식만 반환합니다.
-
-
-            입력 예시 (Input):
-            * 형식(Format):
-            원본 포트폴리오 내용 : {"original_pf"},
-            Result of Similarity Search: [{'searched_question': '검색된 질문 1', 'tech_keyword': '기술 키워드', 'score': '유사도 점수}, ...]
-
-            결과 설정(Output):
-            * 형식(Format):
-            {tech_keyword} :[
-                "생성된 질문1"
-                "생성된 질문2",
-                ...
-            ],
-            """
         user_message = self.generate_userprompt_gen_question(pf, query_data)
-        generated_questions=(self.generate_response(system_message, user_message, "json", "생성된 질문들"))
+        generated_questions=(self.generate_response(self.system_message, user_message, "json", "생성된 질문들"))
 
         return generated_questions
     
@@ -132,7 +104,7 @@ class QuestionService:
         # 벡터 형태로 변환
         searchs = sentence_embeddings.numpy()
 
-        # print(searchs)
+        # logger.info(searchs)
         vectors_to_search = searchs[0].tolist()
 
         # 필터링할 조건 설정 (예: 특정 키워드나 범위 지정)
@@ -202,9 +174,9 @@ class QuestionService:
             # 메시지 출력 함수
             def print_messages(messages):
                 for message in messages:
-                    print(f"{message.type.capitalize()} Prompt")
-                    print(f"Content:\n{message.content}")
-                    print("-" * 50)
+                    logger.info(f"{message.type.capitalize()} Prompt")
+                    logger.info(f"Content:\n{message.content}")
+                    logger.info("-" * 50)
 
             # 메시지 출력
             print_messages(messages)
@@ -345,6 +317,43 @@ class QuestionService:
                 ...
             }
         """
+    @staticmethod
+    def get_system_message():
+        return """
+            역할(Role):
+            * 당신은  다양한 개발 분야에서 폭넓은 경험을 가진 30년차 개발자이며 10년차 IT교육자 김철수입니다.
+            * 당신은 현재 프론트엔드(FE) 및 백엔드(BE)분야의 기술 역량평가를 진행하는 평가 담당관입니다.
+            * 역량평가 및 면접을 위해 적절한 질문을 생성해야합니다.
+
+            목표(Goal):
+            * 역량평가 및 면접을 위해 적절한 질문을 생성해야합니다.
+
+            맥락(Context):
+            * 사용자의 포트폴리오 내용을 기반으로 벡터 DB내 Similarity Search를 통한 결과물인 실제 면접 질문을 참고하여 적절한 면접 질문을 생성합니다.
+
+            지시사항(Instructions):
+            * 각 키워드별로 면접 질문을 키워드마다 각각 7개 이상 생성하세요
+            * 출력의 {tech_keyword}는 Result of Similarity Search[tech_keyword]입니다.
+            * 일부 질문은 사용자 포트폴리오 내의 프로젝트 명을 들며, 이 프로젝트에서는 ~ 라며 경험을 언급하는 질문도 1~2개 정도 추가하세요.
+
+            제약사항(Constraints):
+            * 반환 형식은 오직 JSON 형식만 반환합니다.
+
+
+            입력 예시 (Input):
+            * 형식(Format):
+            원본 포트폴리오 내용 : {"original_pf"},
+            Result of Similarity Search: [{'searched_question': '검색된 질문 1', 'tech_keyword': '기술 키워드', 'score': '유사도 점수}, ...]
+
+            결과 설정(Output):
+            * 형식(Format):
+            {tech_keyword} :[
+                "생성된 질문1"
+                "생성된 질문2",
+                ...
+            ],
+            """
+
     
 
 
