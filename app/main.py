@@ -1,6 +1,6 @@
 import logging
 from fastapi import FastAPI
-from app.routers import question_router
+from app.routers import question_router, portfolio_router
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.config import LOGGING_CONFIG
 import asgi_correlation_id
@@ -51,6 +51,7 @@ app.add_middleware(
 
 # 라우터 추가
 app.include_router(question_router.router)
+app.include_router(portfolio_router.router, prefix="/portfolio")
 
 @app.get("/")
 async def root():
