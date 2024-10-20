@@ -4,6 +4,7 @@ from app.routers import question_router
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.config import LOGGING_CONFIG
 import asgi_correlation_id
+import sentry_sdk
 
 
 def configure_logging():
@@ -22,6 +23,13 @@ def configure_logging():
 
 
 app = FastAPI(on_startup=[configure_logging])
+
+#centry init
+sentry_sdk.init(
+    dsn="https://6da3acf4369b05f894aff13dfae50290@o4508148534738944.ingest.us.sentry.io/4508148536049664",
+    traces_sample_rate=1.0,
+    profiles_sample_rate=1.0,
+)
 
 
 #logging

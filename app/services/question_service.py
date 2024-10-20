@@ -37,9 +37,11 @@ class QuestionService:
         self.arrangement_jd_system_message = self.get_arrangement_jd_system_message()
         self.for_search_system_message = self.get_for_search_system_message()
         self.system_message = self.get_system_message()
+        
 
     # def create_questions(self, id: str, links: list[str]) -> list[str]:
     def create_questions(self, portfolio_data: str, job_description_data: str, input_position: str) -> list[str]:
+        
         portfolio_data, job_description_data
         pf = self.generate_response(self.arrangement_pf_system_message, portfolio_data, "list")
         jd = self.generate_response(self.arrangement_jd_system_message, job_description_data, "list")
