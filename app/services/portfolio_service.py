@@ -28,6 +28,7 @@ class PortfolioService :
         doc = fitz.open(pdf_path)
         temp_images = []
         substitution_counts = defaultdict(int)
+        masked_texts = []
 
         logger.info(search_texts)
         logger.info(replace_texts)
@@ -48,7 +49,22 @@ class PortfolioService :
             temp_image_path = self._save_page_as_image(page, page_num)
             temp_images.append(temp_image_path)
 
+            ### txt 마스킹 작업 ###
+            text = page.get_text()
+            text = ' '.join(text.split())
+            for search_text, replace_text in zip(search_texts, replace_texts):
+                if search_text in text:
+                    text = re.sub(re.escape(search_text), replace_text, text)
+                    substitution_counts[f"{search_text} -> {replace_text}"] += 1
+            masked_texts.append(f"Page {page_num + 1}:\n{text}")
+
         output_pdf_path = self._generate_masked_pdf(pdf_path, temp_images)
+
+        print(masked_texts)
+        output_path = f"{os.path.splitext(pdf_path)[0]}.txt"
+        with open(output_path, 'w', encoding='utf-8') as file:
+            for masked_text in masked_texts:
+                file.write(masked_text + "\n\n")
 
         doc.close()
 

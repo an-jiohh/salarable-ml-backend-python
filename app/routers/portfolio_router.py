@@ -11,7 +11,11 @@ from app.core.config import get_settings
 
 
 #s3
-s3_client = boto3.client('s3')
+config = get_settings()
+
+s3_client = boto3.client('s3', 
+                         aws_access_key_id = config.aws_access_key_id, 
+                         aws_secret_access_key=config.aws_secret_access_key)
 
 #logging
 logger = logging.getLogger(__name__)
@@ -29,6 +33,15 @@ class MaskingPortfolioRequest(BaseModel):
 
 class MaskingPortfolioResponse(BaseModel):
     output_data: dict
+
+class MaskedTextRequest(BaseModel):
+    file_name: str
+
+class MaskedTextResponse(BaseModel):
+    status: int
+    masked_text: str
+
+
 
 @router.post("/mask", response_model=MaskingPortfolioResponse)
 async def masking_portfolio(
@@ -57,15 +70,42 @@ async def masking_portfolio(
         result = portfolio_service.mask_portfolio(file_location, masking_text, replacement_text)
 
         file_name = os.path.splitext(file.filename)[0]
+        text_file_name = f"temp/{file_name}.txt"
         s3_uploader.upload_file(file_location, f"{file_name}/{file.filename}")
         s3_uploader.upload_file(result, f"{file_name}/masked_{file.filename}")
+        s3_uploader.upload_file(text_file_name, f"{file_name}/{file_name}.txt")
 
         background_tasks.add_task(delete_file, file_location)
         background_tasks.add_task(delete_file, result)
+        background_tasks.add_task(delete_file, text_file_name)
 
         return FileResponse(path=result, filename=os.path.basename(result))
     
     except Exception as e:
+        logger.error(str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/maskedText", response_model=MaskedTextResponse)
+async def get_masked_text(
+    background_tasks: BackgroundTasks,
+    request_model: MaskedTextRequest,
+    s3_uploader: S3Uploader = Depends(get_s3_uploader)) :
+    try :
+        file_name = request_model.file_name
+        s3_postion_name = os.path.splitext(file_name)[0]
+        s3_uploader.download_file(f"temp/{s3_postion_name}.txt",f"{s3_postion_name}/{s3_postion_name}.txt" )
+
+        with open(f"temp/{s3_postion_name}.txt", 'r', encoding='utf-8') as file:
+            masked_text = file.read()
+
+        background_tasks.add_task(delete_file, f"temp/{s3_postion_name}.txt")
+
+        return MaskedTextResponse(
+            status=200,
+            masked_text=masked_text
+        )
+    except Exception as e:
+        logger.error(str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 def delete_file(file_path: str):

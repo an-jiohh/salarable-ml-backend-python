@@ -32,6 +32,14 @@ class S3Uploader:
         except Exception as e:
             logger.error(f"S3에서 파일 삭제 실패: {str(e)}")
             raise HTTPException(status_code=500, detail="S3 파일 삭제 실패")
+    
+    def download_file(self, file_path:str, object_name: str):
+        try:
+            self.s3_client.download_file(Bucket=self.bucket_name, Key=object_name, Filename=file_path)
+            logger.info(f"S3에서 파일이 다운로드되었습니다: {object_name}")
+        except Exception as e:
+            logger.error(f"S3에서 파일 다운 실패: {str(e)}")
+            raise HTTPException(status_code=500, detail="S3 파일 다운 실패")
         
 s3_uploader = S3Uploader(config=get_settings())
 
