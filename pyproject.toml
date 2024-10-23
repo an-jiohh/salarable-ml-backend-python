@@ -23,6 +23,7 @@ python-multipart = "^0.0.12"
 pymupdf = "^1.24.11"
 pillow = "^11.0.0"
 boto3 = "^1.35.45"
+fitz = "^0.0.1.dev2"
 
 
 [build-system]
