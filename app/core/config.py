@@ -6,6 +6,11 @@ class Settings(BaseSettings):
     openai_api_key: str
     pinecone_index_name: str
     pre_processed_dataset: str
+    s3_bucket_name: str
+    aws_access_key_id: str
+    aws_secret_access_key: str
+    aws_region: str
+
     # APP_ENV: str = 'dev'
     model_config = SettingsConfigDict(env_file=".env")
 
