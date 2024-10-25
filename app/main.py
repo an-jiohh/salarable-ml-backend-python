@@ -39,6 +39,7 @@ app.add_middleware(asgi_correlation_id.CorrelationIdMiddleware)
 origins = [
     "http://localhost",
     "http://localhost:3000",
+    "https://salarable.pro",
 ]
 
 app.add_middleware(
