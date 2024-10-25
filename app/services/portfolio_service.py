@@ -78,25 +78,25 @@ class PortfolioService :
         for email in email_addresses:
             if email not in search_texts:
                 search_texts.append(email)
-                replace_texts.append("[email]")
+                replace_texts.append("email")
 
         phone_numbers = re.findall(self.phone_pattern, text)
         for phone in phone_numbers:
             if phone not in search_texts:
                 search_texts.append(phone)
-                replace_texts.append("[phone]")
+                replace_texts.append("phone")
 
         edus = re.findall(self.edu_pattern, text)
         for edu in edus:
             if edu not in search_texts:
                 search_texts.append(edu)
-                replace_texts.append("[edu]")
+                replace_texts.append("edu")
 
         urls = re.findall(self.url_pattern, text)
         for url in urls:
             if url not in search_texts:
                 search_texts.append(url)
-                replace_texts.append("[url]")
+                replace_texts.append("url")
 
     def _generate_masked_pdf(self, pdf_path, image_list):
         """저장된 이미지 파일들을 합쳐서 새로운 마스킹된 PDF 생성"""
