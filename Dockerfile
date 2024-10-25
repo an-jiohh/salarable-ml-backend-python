@@ -1,13 +1,8 @@
 FROM python:3.11.9-slim
 
-RUN apt-get update && apt-get install -y gcc build-essential
+COPY requirements.txt  ./
 
-COPY poetry.lock pyproject.toml ./
-RUN pip install poetry
-
-# Poetry 가상 환경 비활성화 설정
-RUN poetry config virtualenvs.create false
-RUN poetry install --no-root
+RUN pip install -r requirements.txt
 
 COPY ./app ./app
 
