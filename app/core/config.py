@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     aws_region: str
 
     # APP_ENV: str = 'dev'
-    model_config = SettingsConfigDict(env_file=".env")
+    # vscode에서 python env 설정으로 필요없어짐
+    # model_config = SettingsConfigDict(env_file=".env")
 
 @lru_cache
 def get_settings():
