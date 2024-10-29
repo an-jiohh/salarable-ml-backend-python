@@ -8,13 +8,12 @@ import asgi_correlation_id
 import sentry_sdk
 import os
 
-
 def configure_logging():
     console_handler = logging.StreamHandler()
     console_handler.addFilter(asgi_correlation_id.CorrelationIdFilter())
 
     # 파일 핸들러 (파일에 로그 기록)
-    log_file = "/var/log/fastapi/app.log"   # 원하는 로그 파일 경로로 변경 가능
+    log_file = os.getenv("LOG_PATH")  # 원하는 로그 파일 경로로 변경 가능
     file_handler = TimedRotatingFileHandler(
         log_file, when="midnight", interval=1, backupCount=7
     )
@@ -26,7 +25,7 @@ def configure_logging():
         format="%(levelname)s %(asctime)s log [%(correlation_id)s] %(name)s %(message)s")
 
 
-environment = os.getenv("ENVIRONMENT", "development")
+environment = os.getenv("ENVIRONMENT")
 app = FastAPI(
     on_startup=[configure_logging],
     docs_url="/docs" if environment == "development" else None,
