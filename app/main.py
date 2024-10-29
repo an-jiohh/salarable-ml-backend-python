@@ -1,10 +1,12 @@
 import logging
+from logging.handlers import TimedRotatingFileHandler
 from fastapi import FastAPI
 from app.routers import question_router, portfolio_router
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.config import LOGGING_CONFIG
 import asgi_correlation_id
 import sentry_sdk
+import os
 
 
 def configure_logging():
@@ -12,8 +14,10 @@ def configure_logging():
     console_handler.addFilter(asgi_correlation_id.CorrelationIdFilter())
 
     # 파일 핸들러 (파일에 로그 기록)
-    log_file = "app.log"  # 원하는 로그 파일 경로로 변경 가능
-    file_handler = logging.FileHandler(log_file)
+    log_file = "/var/log/fastapi/app.log"   # 원하는 로그 파일 경로로 변경 가능
+    file_handler = TimedRotatingFileHandler(
+        log_file, when="midnight", interval=1, backupCount=7
+    )
     file_handler.addFilter(asgi_correlation_id.CorrelationIdFilter())
 
     logging.basicConfig(
@@ -22,7 +26,12 @@ def configure_logging():
         format="%(levelname)s %(asctime)s log [%(correlation_id)s] %(name)s %(message)s")
 
 
-app = FastAPI(on_startup=[configure_logging])
+environment = os.getenv("ENVIRONMENT", "development")
+app = FastAPI(
+    on_startup=[configure_logging],
+    docs_url="/docs" if environment == "development" else None,
+    redoc_url="/redoc" if environment == "development" else None
+)
 
 #centry init
 sentry_sdk.init(
@@ -37,9 +46,7 @@ app.add_middleware(asgi_correlation_id.CorrelationIdMiddleware)
 
 #CORS
 origins = [
-    "http://localhost",
-    "http://localhost:3000",
-    "https://salarable.pro",
+    "https://gridge.salarable.pro",
 ]
 
 app.add_middleware(
