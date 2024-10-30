@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import logging
 from app.services.question_service import QuestionService, get_question_service
 from app.services.question_service_v4 import QuestionServiceV4, get_question_service_v4
+import traceback
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -32,11 +33,11 @@ def query_search(request_model: CreateQuestionRequest, question_service: Questio
         )
 
 @router.post("/v4/create_question", response_model=CreateQuestionResponse)
-def create_question(request_model: CreateQuestionRequest, question_service: QuestionServiceV4 = Depends(get_question_service_v4)):
+async def create_question(request_model: CreateQuestionRequest, question_service: QuestionServiceV4 = Depends(get_question_service_v4)):
     try :
-        result = question_service.create_questions(request_model.portfolio_data, request_model.job_description_data, request_model.input_position)
+        result = await question_service.create_questions(request_model.portfolio_data, request_model.job_description_data, request_model.input_position)
     except Exception as e:
-        logger.error(str(e))
+        logger.error("Exception occurred: %s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
     return CreateQuestionResponse(
