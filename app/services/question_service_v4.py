@@ -19,6 +19,9 @@ from collections import Counter
 #loggin
 import logging
 
+#asyncio
+import asyncio
+
 logger = logging.getLogger(__name__)
 
 class QuestionsResponse(BaseModel):
@@ -57,12 +60,15 @@ class QuestionServiceV4:
         self.system_generate_questions_comformitypoint_jd_only:str = self.get_system_generate_questions_comformitypoint_jd_only()
 
     # def create_questions(self, id: str, links: list[str]) -> list[str]:
-    def create_questions(self, portfolio_data: str, job_description_data: str, input_position: str) -> list[str]:
+    async def create_questions(self, portfolio_data: str, job_description_data: str, input_position: str) -> list[str]:
 
-        pf_original = self.generate_response(self.system_preprocessing_pf_original, portfolio_data, "list", self.params_konowledge_based, self.kwargs_knowlegde_based)
-        logger.info(pf_original)
-        jd = self.generate_response(self.system_preprocessing_jd, job_description_data, "list",self.params_konowledge_based, self.kwargs_knowlegde_based)
-        logger.info(f"jd:{jd}")
+        pf_original_task = self.generate_response(self.system_preprocessing_pf_original, portfolio_data, "list", self.params_konowledge_based, self.kwargs_knowlegde_based)
+
+        jd_task = self.generate_response(self.system_preprocessing_jd, job_description_data, "list",self.params_konowledge_based, self.kwargs_knowlegde_based)
+        
+        pf_original, jd = await asyncio.gather(pf_original_task, jd_task)
+        logger.info(f"pf_original : pf_original")
+        logger.info(f"jd : {jd}")
 
         class SubExtractKeywordFromJD(BaseModel):
             requirements_and_preferences: str = Field(description="requirements or preferences")
@@ -76,7 +82,7 @@ class QuestionServiceV4:
             채용공고 : {jd},
             """
         
-        keywords_compared_with_keywordlist_and_jd = self.generate_response(self.system_extract_keyword_from_jd, USER_EXTRACT_KEYWORD_FROM_JD, "json", self.params_konowledge_based, self.kwargs_knowlegde_based,OutputExtractKeywordFromJD)
+        keywords_compared_with_keywordlist_and_jd = await self.generate_response(self.system_extract_keyword_from_jd, USER_EXTRACT_KEYWORD_FROM_JD, "json", self.params_konowledge_based, self.kwargs_knowlegde_based,OutputExtractKeywordFromJD)
 
         logger.info(f"keywords_compared_with_keywordlist_and_jd:{keywords_compared_with_keywordlist_and_jd}")
         #compare PF with JD
@@ -99,16 +105,16 @@ class QuestionServiceV4:
         기술키워드 : {keywords_compared_with_keywordlist_and_jd.keys()},
         """
 
-        wowpoint = self.generate_response(self.system_extract_wowpoint, USER_EXTRACT_WOWPOINT,  "json", self.params_konowledge_based, self.kwargs_knowlegde_based,OutputExtractWowpoint)
-
+        wowpoint = await self.generate_response(self.system_extract_wowpoint, USER_EXTRACT_WOWPOINT,  "json", self.params_konowledge_based, self.kwargs_knowlegde_based,OutputExtractWowpoint)
+        logger.info(f"wowpoint:{wowpoint}")
         class OutputGenerateQuestionsWowpoint(BaseModel):
             questions_wowpoint_tech: List[str] = Field(description="지식 관련 질문")
             questions_wowpoint_experience: List[str] = Field(description="경험 범주의 질문")
         USER_GENERATE_QUESTIONS_WOWPOINT = f"""
             WOW-Point: {wowpoint}
             """
-        questions_wowpoint = self.generate_response(self.system_generate_questions_wowpoint, USER_GENERATE_QUESTIONS_WOWPOINT, "json",self.params_konowledge_based, self.kwargs_knowlegde_based,  OutputGenerateQuestionsWowpoint)
-
+        questions_wowpoint = await self.generate_response(self.system_generate_questions_wowpoint, USER_GENERATE_QUESTIONS_WOWPOINT, "json",self.params_konowledge_based, self.kwargs_knowlegde_based,  OutputGenerateQuestionsWowpoint)
+        logger.info(f"questions_wowpoint:{questions_wowpoint}")
         #의심스러운 정황
         class SubOutputExtractDoubtpointPFOnly(BaseModel):
             original_sentences: str = Field(description="포트폴리오 내 의심스러운 정황이 포착된 문장")
@@ -120,8 +126,8 @@ class QuestionServiceV4:
         USER_EXTRACT_DOUBTPOINT_PF_ONLY = f"""
             포트폴리오 : {pf_original},
             """
-        doubtpoint_pf_only = self.generate_response(self.system_extract_doubtpoint_pf_only, USER_EXTRACT_DOUBTPOINT_PF_ONLY,"json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputExtractDoubtpointPFOnly)
-
+        doubtpoint_pf_only_task = self.generate_response(self.system_extract_doubtpoint_pf_only, USER_EXTRACT_DOUBTPOINT_PF_ONLY,"json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputExtractDoubtpointPFOnly)
+        
         class OutputExtractDoubtpointJDandPF(BaseModel):
             doubtsentence_jd_and_pf: List[str] = Field(description="포트폴리오 내 문장")
         
@@ -130,7 +136,11 @@ class QuestionServiceV4:
             채용공고 : {jd}
             """
         
-        doubtpoint_jd_and_pf = self.generate_response(self.system_extract_doubtpoint_jd_and_pf, USER_EXTRACT_DOUBTPOINT_JD_AND_PF, "json",self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputExtractDoubtpointJDandPF)
+        doubtpoint_jd_and_pf_task = self.generate_response(self.system_extract_doubtpoint_jd_and_pf, USER_EXTRACT_DOUBTPOINT_JD_AND_PF, "json",self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputExtractDoubtpointJDandPF)
+
+        doubtpoint_pf_only, doubtpoint_jd_and_pf = await asyncio.gather(doubtpoint_pf_only_task, doubtpoint_jd_and_pf_task)
+        logger.info(f"doubtpoint_pf_only:{doubtpoint_pf_only}")
+        logger.info(f"doubtpoint_jd_and_pf:{doubtpoint_jd_and_pf}")
 
         class OutputGenerateQuestionsDoubtpoint(BaseModel):
             doubt_questions_pf_only: List[str] = Field(description="포트폴리오 기반 의심스러운 경향 관련 질문")
@@ -142,8 +152,8 @@ class QuestionServiceV4:
         포트폴리오: {pf_original}
         """
 
-        questions_doubtpoint = self.generate_response(self.system_generate_questions_doubtpoint, USER_GENERATE_QUESTIONS_DOUBTPOINT,  "json",self.params_konowledge_based,self.kwargs_knowlegde_based, OutputGenerateQuestionsDoubtpoint)
-
+        questions_doubtpoint = await self.generate_response(self.system_generate_questions_doubtpoint, USER_GENERATE_QUESTIONS_DOUBTPOINT,  "json",self.params_konowledge_based,self.kwargs_knowlegde_based, OutputGenerateQuestionsDoubtpoint)
+        logger.info(f"questions_doubtpoint:{questions_doubtpoint}")
         #(PF && 채용공고)의 부합성
         class SubOutputExtractConformitypoint(BaseModel):
             requirements_and_preferences: str = Field(description="requirements or preferences")
@@ -158,8 +168,8 @@ class QuestionServiceV4:
             포트폴리오 : {pf_original},
             채용공고의 기술 키워드 : {keywords_compared_with_keywordlist_and_jd},
             """
-        conformitypoint = self.generate_response(self.system_extract_conformitypoint, USER_EXTRACT_CONFORMITYPOINT, "json",self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputExtractConformitypoint)
-        logger.info(f"conformitypoint{conformitypoint}")
+        conformitypoint = await self.generate_response(self.system_extract_conformitypoint, USER_EXTRACT_CONFORMITYPOINT, "json",self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputExtractConformitypoint)
+        logger.info(f"conformitypoint : {conformitypoint}")
         requirements_in_pf_semantic_search = {}
         requirements_not_in_pf_semantic_search = {}
 
@@ -230,22 +240,20 @@ class QuestionServiceV4:
         class OutputGenerateQuestionsConformitypointJDandPF(BaseModel):
             tech_keyword: SubOutputGenerateQuestionsConformitypointJDandPF = Field(description="생성된 질문들")
         
+        tasks = []
+        # 자격요건 + 채용공고 O + 포트폴리오 O
         USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_AND_PF = f"""
         포트폴리오: {pf_original},
         Result of Similarity Search: {requirements_in_pf_semantic_search}
         """
-
-        # 자격요건 + 채용공고 O + 포트폴리오 O
-        questions_requirements_in_pf_semantic_search = {}
-        if requirements_in_pf_semantic_search : questions_requirements_in_pf_semantic_search = self.generate_response(self.system_generate_questions_conformitypoint_jd_and_pf, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_AND_PF, "json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDandPF)
+        if requirements_in_pf_semantic_search : tasks.append(self.generate_response(self.system_generate_questions_conformitypoint_jd_and_pf, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_AND_PF, "json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDandPF))
 
         # 우대사항 + 채용공고 O + 포트폴리오 O
         USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_AND_PF = f"""
         포트폴리오: {pf_original},
         Result of Similarity Search: {preferences_in_pf_semantic_search}
         """
-        questions_preferences_in_pf_semantic_search = {}
-        if preferences_in_pf_semantic_search : questions_preferences_in_pf_semantic_search = self.generate_response(self.system_generate_questions_conformitypoint_jd_and_pf, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_AND_PF,  "json", self.params_konowledge_based,self.kwargs_knowlegde_based, OutputGenerateQuestionsConformitypointJDandPF)
+        if preferences_in_pf_semantic_search : tasks.append(self.generate_response(self.system_generate_questions_conformitypoint_jd_and_pf, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_AND_PF,  "json", self.params_konowledge_based,self.kwargs_knowlegde_based, OutputGenerateQuestionsConformitypointJDandPF))
 
         # 채용공고O + 포트폴리오X : Semantic Search / 경험 질문
         class OutputGenerateQuestionsConformitypointJDOnly(BaseModel):
@@ -253,14 +261,18 @@ class QuestionServiceV4:
         USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_ONLY = f"""
         Result of Similarity Search: {requirements_not_in_pf_semantic_search}
         """
-        questions_requirements_not_in_pf_semantic_search = {}
-        if requirements_not_in_pf_semantic_search : questions_requirements_not_in_pf_semantic_search = self.generate_response(self.system_generate_questions_comformitypoint_jd_only, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_ONLY,"json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDOnly)
+        if requirements_not_in_pf_semantic_search : tasks.append(self.generate_response(self.system_generate_questions_comformitypoint_jd_only, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_ONLY,"json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDOnly))
         # 우대사항 + 채용공고 O + 포트폴리오 X
         USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_ONLY = f"""
         Result of Similarity Search: {preferences_not_in_pf_semantic_search}
         """
-        questions_preferences_not_in_pf_semantic_search = {}
-        if preferences_not_in_pf_semantic_search : questions_preferences_not_in_pf_semantic_search = self.generate_response(self.system_generate_questions_comformitypoint_jd_only, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_ONLY, "json",self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDOnly)
+        if preferences_not_in_pf_semantic_search : tasks.append(self.generate_response(self.system_generate_questions_comformitypoint_jd_only, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_ONLY, "json",self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDOnly))
+        
+        tasks_results = await asyncio.gather(*tasks)
+        questions_requirements_in_pf_semantic_search = tasks_results[0] if requirements_in_pf_semantic_search else {}
+        questions_preferences_in_pf_semantic_search = tasks_results[1] if preferences_in_pf_semantic_search else {}
+        questions_requirements_not_in_pf_semantic_search = tasks_results[2] if requirements_not_in_pf_semantic_search else {}
+        questions_preferences_not_in_pf_semantic_search = tasks_results[3] if preferences_not_in_pf_semantic_search else {}
 
             
         logger.info(f"response wowpoint : {questions_wowpoint}")
@@ -312,7 +324,7 @@ class QuestionServiceV4:
 
         return query_results
     
-    def generate_response(self, system_message, user_message, parser_type, params=None, kwargs=None, custom_output=None):
+    async def generate_response(self, system_message, user_message, parser_type, params=None, kwargs=None, custom_output=None):
 
             ### 기본 모델 파라미터 설정 ###
             default_params = {
@@ -348,7 +360,7 @@ class QuestionServiceV4:
             llm = ChatOpenAI(model="gpt-4o", api_key=self.config.openai_api_key, **full_params)
             messages = prompt.format_messages(system_input=system_message, user_input=user_message)
 
-            logger.info(messages)
+            # logger.info(messages)
 
             if parser_type == "json":
                 # 파서를 설정하고 프롬프트 템플릿에 지시사항을 주입합니다.
