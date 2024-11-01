@@ -177,6 +177,7 @@ class QuestionServiceV4:
         preferences_in_pf_semantic_search = {}
         preferences_not_in_pf_semantic_search = {}
 
+
         for keyword in conformitypoint.keys():
             _type = conformitypoint[keyword]['requirements_and_preferences']
             is_in_pf = conformitypoint[keyword]['is_keywords_in_PF']
@@ -239,21 +240,21 @@ class QuestionServiceV4:
             tech_based_questions: list = Field(description="이론/기술 관련 질문")
         class OutputGenerateQuestionsConformitypointJDandPF(BaseModel):
             tech_keyword: SubOutputGenerateQuestionsConformitypointJDandPF = Field(description="생성된 질문들")
-        
-        tasks = []
+
+        tasks = [self.default_tasks(), self.default_tasks(), self.default_tasks(), self.default_tasks()]
         # 자격요건 + 채용공고 O + 포트폴리오 O
         USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_AND_PF = f"""
         포트폴리오: {pf_original},
         Result of Similarity Search: {requirements_in_pf_semantic_search}
         """
-        if requirements_in_pf_semantic_search : tasks.append(self.generate_response(self.system_generate_questions_conformitypoint_jd_and_pf, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_AND_PF, "json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDandPF))
+        if requirements_in_pf_semantic_search : tasks[0] = self.generate_response(self.system_generate_questions_conformitypoint_jd_and_pf, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_AND_PF, "json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDandPF)
 
         # 우대사항 + 채용공고 O + 포트폴리오 O
         USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_AND_PF = f"""
         포트폴리오: {pf_original},
         Result of Similarity Search: {preferences_in_pf_semantic_search}
         """
-        if preferences_in_pf_semantic_search : tasks.append(self.generate_response(self.system_generate_questions_conformitypoint_jd_and_pf, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_AND_PF,  "json", self.params_konowledge_based,self.kwargs_knowlegde_based, OutputGenerateQuestionsConformitypointJDandPF))
+        if preferences_in_pf_semantic_search : tasks[1] = self.generate_response(self.system_generate_questions_conformitypoint_jd_and_pf, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_AND_PF,  "json", self.params_konowledge_based,self.kwargs_knowlegde_based, OutputGenerateQuestionsConformitypointJDandPF)
 
         # 채용공고O + 포트폴리오X : Semantic Search / 경험 질문
         class OutputGenerateQuestionsConformitypointJDOnly(BaseModel):
@@ -261,18 +262,18 @@ class QuestionServiceV4:
         USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_ONLY = f"""
         Result of Similarity Search: {requirements_not_in_pf_semantic_search}
         """
-        if requirements_not_in_pf_semantic_search : tasks.append(self.generate_response(self.system_generate_questions_comformitypoint_jd_only, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_ONLY,"json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDOnly))
+        if requirements_not_in_pf_semantic_search : tasks[2] = self.generate_response(self.system_generate_questions_comformitypoint_jd_only, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_REQUIREMENTS_JD_ONLY,"json", self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDOnly)
         # 우대사항 + 채용공고 O + 포트폴리오 X
         USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_ONLY = f"""
         Result of Similarity Search: {preferences_not_in_pf_semantic_search}
         """
-        if preferences_not_in_pf_semantic_search : tasks.append(self.generate_response(self.system_generate_questions_comformitypoint_jd_only, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_ONLY, "json",self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDOnly))
+        if preferences_not_in_pf_semantic_search : tasks[3] = self.generate_response(self.system_generate_questions_comformitypoint_jd_only, USER_GENERATE_QUESTIONS_CONFORMITYPOINT_PREFERENCES_JD_ONLY, "json",self.params_konowledge_based,self.kwargs_knowlegde_based,  OutputGenerateQuestionsConformitypointJDOnly)
         
         tasks_results = await asyncio.gather(*tasks)
-        questions_requirements_in_pf_semantic_search = tasks_results[0] if requirements_in_pf_semantic_search else {}
-        questions_preferences_in_pf_semantic_search = tasks_results[1] if preferences_in_pf_semantic_search else {}
-        questions_requirements_not_in_pf_semantic_search = tasks_results[2] if requirements_not_in_pf_semantic_search else {}
-        questions_preferences_not_in_pf_semantic_search = tasks_results[3] if preferences_not_in_pf_semantic_search else {}
+        questions_requirements_in_pf_semantic_search = tasks_results[0]
+        questions_preferences_in_pf_semantic_search = tasks_results[1]
+        questions_requirements_not_in_pf_semantic_search = tasks_results[2]
+        questions_preferences_not_in_pf_semantic_search = tasks_results[3]
 
             
         logger.info(f"response wowpoint : {questions_wowpoint}")
@@ -291,6 +292,9 @@ class QuestionServiceV4:
             questions_preferences_not_in_pf_semantic_search=questions_preferences_not_in_pf_semantic_search
         )
         return response
+
+    async def default_tasks(self):
+        return {}
     
     def search_vector_db(self, keyword, sentence, namespace):
 
@@ -384,11 +388,11 @@ class QuestionServiceV4:
             tech_keyword = metadata.get('tech_keyword', 'N/A')
             searched_sentences = metadata.get('text', 'N/A')
             score = _match.get('score', 'N/A')
-        _list.setdefault(_keyword, []).append({
-            "original_sentence" : original_sentence,
-            "searched_question": searched_sentences,
-            "score": round(score, 2)
-        })
+            _list.setdefault(_keyword, []).append({
+                "original_sentence" : original_sentence,
+                "searched_question": searched_sentences,
+                "score": round(score, 2)
+            })
     
     def generate_userprompt_gen_question(self, pf, result_of_similarity_search):
             user_message = f"""
