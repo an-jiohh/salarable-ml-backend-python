@@ -35,6 +35,9 @@ def query_search(request_model: CreateQuestionRequest, question_service: Questio
 @router.post("/v4/create_question", response_model=CreateQuestionResponse)
 async def create_question(request_model: CreateQuestionRequest, question_service: QuestionServiceV4 = Depends(get_question_service_v4)):
     try :
+        logger.info(f"portfolio_data : {request_model.portfolio_data}")
+        logger.info(f"job_description_data : {request_model.job_description_data}")
+        logger.info(f"input_position : {request_model.input_position}")
         result = await question_service.create_questions(request_model.portfolio_data, request_model.job_description_data, request_model.input_position)
     except Exception as e:
         logger.error("Exception occurred: %s", traceback.format_exc())
