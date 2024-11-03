@@ -49,9 +49,13 @@ async def log_request_response(request: Request, call_next):
     app_logger = logging.getLogger(__name__)
 
     start_time = time()
+
+    ip_address = request.client.host
+    forwarded_ip = request.headers.get("X-Forwarded-For")
+    client_ip = forwarded_ip.split(",")[0].strip() if forwarded_ip else ip_address
     
     # 요청 세부 정보를 로깅합니다.
-    app_logger.info(f"Request: {request.method} {request.url} - Correlation ID: {correlation_id}")
+    app_logger.info(f"Request: {request.method} {request.url} {client_ip} - Correlation ID: {correlation_id}")
     
     # 요청을 처리합니다.
     response = await call_next(request)
