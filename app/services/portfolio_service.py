@@ -115,7 +115,7 @@ class PortfolioService :
     
     def _save_page_as_image(self, page, page_num):
         """PDF 페이지를 이미지로 변환하여 임시 파일로 저장"""
-        dpi = 300
+        dpi = 150
         zoom = dpi / 72.0
         mat = fitz.Matrix(zoom, zoom)
         pix = page.get_pixmap(matrix=mat)
