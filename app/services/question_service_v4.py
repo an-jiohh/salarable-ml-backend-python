@@ -377,7 +377,7 @@ class QuestionServiceV4:
                 # 파서를 설정하고 프롬프트 템플릿에 지시사항을 주입합니다.
                 chain = prompt | llm | StrOutputParser()
 
-            generated_response = chain.invoke({"system_input": system_message, "user_input": user_message})
+            generated_response = await chain.ainvoke({"system_input": system_message, "user_input": user_message})
 
             return generated_response
     
