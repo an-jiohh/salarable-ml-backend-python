@@ -311,10 +311,11 @@ class QuestionServiceV4:
 
         # logger.info(searchs)
         vectors_to_search = searchs[0].tolist()
-
+        
+        lower_keyword = keyword.lower()
         # 필터링할 조건 설정 (예: 특정 키워드나 범위 지정)
         filter_criteria = {
-            "tech_keyword": {"$in": [keyword]}
+            "tech_keyword": {"$in": [lower_keyword]}
         }
 
         query_results = self.index.query(
