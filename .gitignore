@@ -76,3 +76,4 @@ wheels/
 
 # pytest
 .cache/
+app.log.*
