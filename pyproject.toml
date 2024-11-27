@@ -23,6 +23,7 @@ python-multipart = "^0.0.12"
 pymupdf = "^1.24.11"
 pillow = "^11.0.0"
 boto3 = "^1.35.45"
+scikit-learn = "^1.5.2"
 
 
 [build-system]

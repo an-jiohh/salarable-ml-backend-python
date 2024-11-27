@@ -1,7 +1,7 @@
 from app.core.config import Settings, get_settings
 from collections import defaultdict
 import re
-import fitz
+import pymupdf
 from PIL import Image
 import os
 import logging
@@ -25,7 +25,7 @@ class PortfolioService :
             """, re.VERBOSE)
     
     def mask_portfolio(self, pdf_path: str, search_texts: list, replace_texts: list):
-        doc = fitz.open(pdf_path)
+        doc = pymupdf.open(pdf_path)
         temp_images = []
         substitution_counts = defaultdict(int)
         masked_texts = []
@@ -117,7 +117,7 @@ class PortfolioService :
         """PDF 페이지를 이미지로 변환하여 임시 파일로 저장"""
         dpi = 150
         zoom = dpi / 72.0
-        mat = fitz.Matrix(zoom, zoom)
+        mat = pymupdf.Matrix(zoom, zoom)
         pix = page.get_pixmap(matrix=mat)
         img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
         temp_image_path = f"temp_image/page_{page_num + 1}.png"
@@ -130,4 +130,3 @@ portfolio_service = PortfolioService(config=get_settings())
 
 def get_portfolio_service() :
     yield portfolio_service
-
