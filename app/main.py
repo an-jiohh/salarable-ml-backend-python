@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 from fastapi import FastAPI, Request
-from app.routers import question_router, portfolio_router
+from app.routers import question_router, portfolio_router, interview_router, interviews_router
 from fastapi.middleware.cors import CORSMiddleware
 from uvicorn.config import LOGGING_CONFIG
 import asgi_correlation_id
@@ -72,6 +72,8 @@ async def log_request_response(request: Request, call_next):
 origins = [
     "http://localhost:3000",
     "https://gridge.salarable.pro",
+    "https://www.salarable.com",
+    "https://salarable.com",
 ]
 
 app.add_middleware(
@@ -85,7 +87,17 @@ app.add_middleware(
 # 라우터 추가
 app.include_router(question_router.router)
 app.include_router(portfolio_router.router, prefix="/portfolio")
+app.include_router(interview_router.router)
+app.include_router(interviews_router.router)
 
 @app.get("/")
 async def root():
     return {"message": "FastAPI is running"}
+
+from fastapi.responses import StreamingResponse
+from app.core.event_manager import event_stream
+
+# SSE 엔드포인트
+@app.get("/sse")
+async def sse_endpoint():
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
