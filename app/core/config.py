@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     aws_access_key_id: str
     aws_secret_access_key: str
     aws_region: str
+    rtzr_client_id: str
+    rtzr_client_secret: str
+    rtzr_api_url: str
 
     # APP_ENV: str = 'dev'
     # vscode에서 python env 설정으로 필요없어짐
